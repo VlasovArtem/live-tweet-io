@@ -29,7 +29,8 @@ var T = new Twit({
     consumer_secret:      'API secret',
     access_token:         'Access token',
     access_token_secret:  'Access token secret'
-})```
+})
+```
 
 
 If you run the nodejs application `node app.js`, you should get:
