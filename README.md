@@ -3,6 +3,8 @@
 
 ## Description
 
+![][screenshot]
+
 Live Tweet IO is an angularJS application streaming from a nodejs application the tweets located near San Francisco.
 
 ## Installation
@@ -80,3 +82,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+[screenshot]: http://www.kdelemme.com/wp-content/uploads/2014/04/live-tweet-io.png
