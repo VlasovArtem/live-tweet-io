@@ -6,11 +6,11 @@ appControllers.controller('TweetCtrl', ['$scope', 'socket',
 		$scope.btnText = "Find Tweets From San Francisco"
 
 		$scope.findTweets = function findTweets() {
-			$scope.btnText = "Brace Yourselves, Tweets are coming";
+			$scope.btnText = "Brace Yourselves, Tweets are coming...";
 			$scope.btnIsDisabled = true;
 
 			socket.on('tweets', function (data) {
-			    $scope.tweets.push(data);
+			    $scope.tweets = $scope.tweets.concat(data);
 			});
 		}
 	}

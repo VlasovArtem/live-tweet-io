@@ -1,6 +1,6 @@
-var Twit = require('twit')
+var Twit = require('twit');
 var io = require('../app').io;
-// var TWEETS_BUFFER_SIZE = 5;
+var TWEETS_BUFFER_SIZE = 3;
 
 var T = new Twit({
     consumer_key:         'API Key',
@@ -9,41 +9,43 @@ var T = new Twit({
     access_token_secret:  'Token Access Secret'
 })
 
+console.log("Listening for tweets from San Francisco...");
+var stream = T.stream('statuses/filter', { locations: [-122.75,36.8,-121.75,37.8] });
+var tweetsBuffer = [];
 
-var findTweets = function() {
-	console.log("Listening for tweets from San Francisco...");
-	var stream = T.stream('statuses/filter', { locations: [-122.75,36.8,-121.75,37.8] });
+stream.on('connect', function(request) {
+	console.log('Connected to Twitter API');
+});
 
-	// var tweetsBuffer = [];
+stream.on('disconnect', function(message) {
+	console.log('Disconnected from Twitter API. Message: ' + message);
+});
 
-	io.sockets.on('connection', function (socket) {
-		stream.on('tweet', function(tweet) {
-			if (tweet.geo == null) {
-				return ;
-			}
+stream.on('reconnect', function (request, response, connectInterval) {
+  console.log('Trying to reconnect to Twitter API in ' + connectInterval + ' ms');
+})
 
-			//Create message containing tweet + username + profile pic + geo
-			var msg = {};
-			msg.text = tweet.text;
-			msg.geo = tweet.geo.coordinates;
-			msg.user = {
-				name: tweet.user.name, 
-				image: tweet.user.profile_image_url
-			};
+stream.on('tweet', function(tweet) {
+	if (tweet.geo == null) {
+		return ;
+	}
 
-			socket.volatile.emit('tweets', msg);
+	//Create message containing tweet + username + profile pic + geo
+	var msg = {};
+	msg.text = tweet.text;
+	msg.geo = tweet.geo.coordinates;
+	msg.user = {
+		name: tweet.user.name, 
+		image: tweet.user.profile_image_url
+	};
 
-			// //push msg into buffer
-			// tweetsBuffer.push(msg);
+	//push msg into buffer
+	tweetsBuffer.push(msg);
 
-			// //send buffer only if full
-			// if (tweetsBuffer.length >= TWEETS_BUFFER_SIZE) {
-			// 	socket.volatile.emit('tweets', tweetsBuffer);
-			// 	tweetsBuffer = [];
-			// }
-		});
-	});
-};
-
-
-findTweets();
+	//send buffer only if full
+	if (tweetsBuffer.length >= TWEETS_BUFFER_SIZE) {
+		//broadcast message
+		io.sockets.emit('tweets', tweetsBuffer);
+		tweetsBuffer = [];
+	}
+});
