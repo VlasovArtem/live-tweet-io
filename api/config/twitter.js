@@ -15,28 +15,43 @@ console.log("Listening for tweets from San Francisco...");
 var stream = T.stream('statuses/filter', { locations: [-122.75,36.8,-121.75,37.8] });
 var tweetsBuffer = [];
 
-io.sockets.on('connection', function(socket) {
-	console.log('Client connected !');
+//Handle Socket.IO events
+var discardClient = function() {
+	console.log('Client disconnected !');
+	nbOpenSockets--;
+
 	if (nbOpenSockets <= 0) {
 		nbOpenSockets = 0;
-		console.log('First active client. Start streaming from Twitter');
-		stream.start();
+		console.log("No active client. Stop streaming from Twitter");
+		stream.stop();
 	}
+};
 
-	nbOpenSockets++;
-
-	socket.on('disconnect', function() {
-		console.log('Client disconnected !');
-		nbOpenSockets--;
-
+var handleClient = function(data) {
+	if (data == true) {
+		console.log('Client connected !');
+		
 		if (nbOpenSockets <= 0) {
 			nbOpenSockets = 0;
-			console.log("No active client. Stop streaming from Twitter");
-			stream.stop();
+			console.log('First active client. Start streaming from Twitter');
+			stream.start();
 		}
-	});
+
+		nbOpenSockets++;
+	}
+};
+
+io.sockets.on('connection', function(socket) {
+
+	socket.on('tweet-io:start', handleClient);
+
+	socket.on('tweet-io:stop', discardClient);
+
+	socket.on('disconnect', discardClient);
 });
 
+
+//Handle Twitter events
 stream.on('connect', function(request) {
 	console.log('Connected to Twitter API');
 
@@ -52,7 +67,7 @@ stream.on('disconnect', function(message) {
 
 stream.on('reconnect', function (request, response, connectInterval) {
   	console.log('Trying to reconnect to Twitter API in ' + connectInterval + ' ms');
-})
+});
 
 stream.on('tweet', function(tweet) {
 	if (tweet.place == null) {
@@ -75,7 +90,7 @@ stream.on('tweet', function(tweet) {
 	//send buffer only if full
 	if (tweetsBuffer.length >= TWEETS_BUFFER_SIZE) {
 		//broadcast tweets
-		io.sockets.emit('tweets', tweetsBuffer);
+		io.sockets.emit('tweet-io:tweets', tweetsBuffer);
 		tweetsBuffer = [];
 	}
 });
