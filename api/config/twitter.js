@@ -1,6 +1,9 @@
 var Twit = require('twit');
 var io = require('../app').io;
 var TWEETS_BUFFER_SIZE = 3;
+var SOCKETIO_TWEETS_EVENT = 'tweet-io:tweets';
+var SOCKETIO_START_EVENT = 'tweet-io:start';
+var SOCKETIO_STOP_EVENT = 'tweet-io:stop';
 var nbOpenSockets = 0;
 var isFirstConnectionToTwitter = true;
 
@@ -14,6 +17,7 @@ var T = new Twit({
 console.log("Listening for tweets from San Francisco...");
 var stream = T.stream('statuses/filter', { locations: [-122.75,36.8,-121.75,37.8] });
 var tweetsBuffer = [];
+var oldTweetsBuffer = [];
 
 //Handle Socket.IO events
 var discardClient = function() {
@@ -27,7 +31,7 @@ var discardClient = function() {
 	}
 };
 
-var handleClient = function(data) {
+var handleClient = function(data, socket) {
 	if (data == true) {
 		console.log('Client connected !');
 		
@@ -38,14 +42,21 @@ var handleClient = function(data) {
 		}
 
 		nbOpenSockets++;
+
+		//Send previous tweets buffer to the new client.
+		if (oldTweetsBuffer != null && oldTweetsBuffer.length != 0) {
+			socket.emit(SOCKETIO_TWEETS_EVENT, oldTweetsBuffer);
+		}
 	}
 };
 
 io.sockets.on('connection', function(socket) {
 
-	socket.on('tweet-io:start', handleClient);
+	socket.on(SOCKETIO_START_EVENT, function(data) {
+		handleClient(data, socket);
+	});
 
-	socket.on('tweet-io:stop', discardClient);
+	socket.on(SOCKETIO_STOP_EVENT, discardClient);
 
 	socket.on('disconnect', discardClient);
 });
@@ -74,7 +85,7 @@ stream.on('tweet', function(tweet) {
 		return ;
 	}
 
-	//Create message containing tweet + username + profile pic
+	//Create message containing tweet + location + username + profile pic
 	var msg = {};
 	msg.text = tweet.text;
 	msg.location = tweet.place.full_name;
@@ -87,10 +98,16 @@ stream.on('tweet', function(tweet) {
 	//push msg into buffer
 	tweetsBuffer.push(msg);
 
+	broadcastTweets();
+});
+
+var broadcastTweets = function() {
 	//send buffer only if full
 	if (tweetsBuffer.length >= TWEETS_BUFFER_SIZE) {
 		//broadcast tweets
-		io.sockets.emit('tweet-io:tweets', tweetsBuffer);
+		io.sockets.emit(SOCKETIO_TWEETS_EVENT, tweetsBuffer);
+		
+		oldTweetsBuffer = tweetsBuffer;
 		tweetsBuffer = [];
 	}
-});
+}
