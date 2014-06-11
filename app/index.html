@@ -16,12 +16,14 @@
   <body>
 
     <div class="container" ng-controller="TweetCtrl">
-        <button type="button" class="btn btn-primary btn-lg btn-block" ng-click="findTweets()" ng-disabled="btnIsDisabled">{{btnText}}</button>
-
-        <span ng-repeat="tweet in tweets | reverse">
-            <tweet />
-        </span>
-       
+        <div class="row">
+            <div class="col-md-offset-3 col-md-6">
+                <button type="button" class="btn btn-primary btn-lg btn-block" ng-click="findTweets()" ng-disabled="btnIsDisabled">{{btnText}}</button>
+                <span ng-repeat="tweet in tweets | reverse">
+                    <tweet />
+                </span>
+            </div>            
+       </div>
     </div>
 
     
